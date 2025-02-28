@@ -2,6 +2,7 @@
 #include <string.h>
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
+#include "hardware/pwm.h"
 #include "inc/ssd1306.h"
 #include "inc/font.h"
 
@@ -18,6 +19,11 @@
 #define LED_VERMELHO 13
 #define LED_VERDE 11
 #define SENHA "1234"
+
+// Adicione após as definições no início do arquivo
+#define BUZZER 10  // Defina o pino do buzzer
+#define FREQ_DIGITO 4000  // 4000Hz - Som agudo para confirmação
+#define FREQ_ACESSO 2000  // 2000Hz - Som mais grave para acesso permitido
 
 // Variáveis de estado do sistema
 bool sistema_ativo = false;
@@ -60,17 +66,51 @@ void verificar_senha(ssd1306_t *ssd, char *entrada) {
         ssd1306_draw_string(ssd, "Senha Correta!", 5, 30);
         gpio_put(LED_VERDE, 1);
         acesso_liberado = true;
+        tocar_buzzer_acesso();  // Toca o buzzer de acesso permitido
     } else {
         ssd1306_draw_string(ssd, "Senha Invalida!", 5, 30);
         tentativas++;
         
         if (tentativas >= 3) {
             sistema_bloqueado = true;
-            tempo_bloqueio = time_us_32() / 1000000 + 60; // Bloqueia por 60 segundos
+            tempo_bloqueio = time_us_32() / 1000000 + 60;
         }
     }
     ssd1306_send_data(ssd);
     sleep_ms(2000);
+}
+
+// Adicione esta nova função
+void tocar_buzzer_digito() {
+    gpio_set_function(BUZZER, GPIO_FUNC_PWM);
+    uint slice_num = pwm_gpio_to_slice_num(BUZZER);
+    
+    // Configura PWM para frequência aguda (4000Hz) com 10% do volume
+    pwm_set_wrap(slice_num, 31250);
+    pwm_set_chan_level(slice_num, PWM_CHAN_A, 3125); // 10% de 31250
+    pwm_set_enabled(slice_num, true);
+    
+    sleep_ms(50);  // Toca por 50ms
+    
+    // Desliga o buzzer
+    pwm_set_enabled(slice_num, false);
+    gpio_set_function(BUZZER, GPIO_FUNC_NULL);
+}
+
+void tocar_buzzer_acesso() {
+    gpio_set_function(BUZZER, GPIO_FUNC_PWM);
+    uint slice_num = pwm_gpio_to_slice_num(BUZZER);
+    
+    // Configura PWM para frequência mais grave (2000Hz) com 10% do volume
+    pwm_set_wrap(slice_num, 62500);
+    pwm_set_chan_level(slice_num, PWM_CHAN_A, 6250); // 10% de 62500
+    pwm_set_enabled(slice_num, true);
+    
+    sleep_ms(200);  // Toca por 200ms
+    
+    // Desliga o buzzer
+    pwm_set_enabled(slice_num, false);
+    gpio_set_function(BUZZER, GPIO_FUNC_NULL);
 }
 
 int main() {
@@ -158,6 +198,7 @@ int main() {
             
             // Confirma o dígito ao pressionar o botão do joystick
             if (gpio_get(BOTAO_JOYSTICK) == 0) {
+                tocar_buzzer_digito();  // Toca o buzzer ao confirmar dígito
                 entrada[indice] = '0' + digito_atual;
                 indice++;
                 digito_atual = 0;
@@ -174,5 +215,3 @@ int main() {
         sleep_ms(100);
     }
 }
-
-

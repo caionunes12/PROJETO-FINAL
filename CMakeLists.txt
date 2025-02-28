@@ -1,5 +1,3 @@
-
-
 cmake_minimum_required(VERSION 3.13)
 
 set(CMAKE_C_STANDARD 11)
@@ -46,7 +44,12 @@ pico_enable_stdio_usb(DisplayC 1)
 
 # Add the standard library to the build
 target_link_libraries(DisplayC
-        pico_stdlib)
+        pico_stdlib
+        hardware_i2c
+        hardware_pwm
+        pico_time
+        hardware_gpio
+)
 
 # Add the standard include files to the build
 target_include_directories(DisplayC PRIVATE
