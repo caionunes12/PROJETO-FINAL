@@ -22,24 +22,33 @@
 // Variáveis de estado do sistema
 bool sistema_ativo = false;
 bool acesso_liberado = false;
+uint32_t tempo_bloqueio = 0;
+bool sistema_bloqueado = false;
+int tentativas = 0;
 
 // Função para desenhar a tela de senha no display
 void desenhar_tela_senha(ssd1306_t *ssd, char *entrada, int indice, int digito_atual) {
     ssd1306_fill(ssd, false);
     if (!sistema_ativo) {
         ssd1306_draw_string(ssd, "Desligado", 25, 10);
+    } else if (sistema_bloqueado) {
+        ssd1306_draw_string(ssd, "Bloqueado!", 25, 10);
+        char tempo_str[20];
+        uint32_t segundos_restantes = (tempo_bloqueio - time_us_32() / 1000000);
+        sprintf(tempo_str, "Aguarde... %lus", segundos_restantes);
+        ssd1306_draw_string(ssd, tempo_str, 5, 30);
     } else if (acesso_liberado) {
         ssd1306_draw_string(ssd, "Acesso Liberado", 5, 10);
     } else {
-        ssd1306_draw_string(ssd, "Digite a Senha:", 8, 10);
+        ssd1306_draw_string(ssd, "Digite a Senha:", 5, 10);
         char senha_exibida[6] = "****";
         for (int i = 0; i < indice; i++) {
             senha_exibida[i] = entrada[i];
         }
-        ssd1306_draw_string(ssd, senha_exibida, 40, 30);
+        ssd1306_draw_string(ssd, senha_exibida, 50, 30);
         char info_digito[10];
         sprintf(info_digito, "Digito: %d", digito_atual);
-        ssd1306_draw_string(ssd, info_digito, 40, 50);
+        ssd1306_draw_string(ssd, info_digito, 30, 50);
     }
     ssd1306_send_data(ssd);
 }
@@ -48,11 +57,17 @@ void desenhar_tela_senha(ssd1306_t *ssd, char *entrada, int indice, int digito_a
 void verificar_senha(ssd1306_t *ssd, char *entrada) {
     ssd1306_fill(ssd, false);
     if (strcmp(entrada, SENHA) == 0) {
-        ssd1306_draw_string(ssd, "Senha Correta!", 15, 30);
+        ssd1306_draw_string(ssd, "Senha Correta!", 5, 30);
         gpio_put(LED_VERDE, 1);
         acesso_liberado = true;
     } else {
-        ssd1306_draw_string(ssd, "Senha Incorreta!", 15, 30);
+        ssd1306_draw_string(ssd, "Senha Invalida!", 5, 30);
+        tentativas++;
+        
+        if (tentativas >= 3) {
+            sistema_bloqueado = true;
+            tempo_bloqueio = time_us_32() / 1000000 + 60; // Bloqueia por 60 segundos
+        }
     }
     ssd1306_send_data(ssd);
     sleep_ms(2000);
@@ -105,15 +120,28 @@ int main() {
             sistema_ativo = !sistema_ativo;
             if (!sistema_ativo) {
                 acesso_liberado = false;
+                sistema_bloqueado = false;
+                tentativas = 0;
                 gpio_put(LED_VERDE, 0);
+                // Reset completo da senha ao desligar
+                indice = 0;
+                digito_atual = 0;
+                memset(entrada, '0', 4);
             }
             gpio_put(LED_VERMELHO, sistema_ativo);
             sleep_ms(500);
         }
         
-        // Se o sistema estiver desligado, apenas exibe a tela
-        if (!sistema_ativo) {
+        // Verifica se o tempo de bloqueio já passou
+        if (sistema_bloqueado && (time_us_32() / 1000000) >= tempo_bloqueio) {
+            sistema_bloqueado = false;
+            tentativas = 0;
+        }
+        
+        // Se o sistema estiver desligado ou bloqueado, apenas exibe a tela
+        if (!sistema_ativo || sistema_bloqueado) {
             desenhar_tela_senha(&ssd, entrada, indice, digito_atual);
+            sleep_ms(100);
             continue;
         }
         
@@ -146,4 +174,5 @@ int main() {
         sleep_ms(100);
     }
 }
+
 
