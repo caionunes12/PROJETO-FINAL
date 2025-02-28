@@ -27,18 +27,18 @@ bool acesso_liberado = false;
 void desenhar_tela_senha(ssd1306_t *ssd, char *entrada, int indice, int digito_atual) {
     ssd1306_fill(ssd, false);
     if (!sistema_ativo) {
-        ssd1306_draw_string(ssd, "DESLIGADO", 15, 10);
+        ssd1306_draw_string(ssd, "Desligado", 25, 10);
     } else if (acesso_liberado) {
-        ssd1306_draw_string(ssd, "ACESSO LIBERADO", 5, 10);
+        ssd1306_draw_string(ssd, "Acesso Liberado", 5, 10);
     } else {
-        ssd1306_draw_string(ssd, "DIGITE A SENHA:", 10, 10);
+        ssd1306_draw_string(ssd, "Digite a Senha:", 8, 10);
         char senha_exibida[6] = "****";
         for (int i = 0; i < indice; i++) {
             senha_exibida[i] = entrada[i];
         }
         ssd1306_draw_string(ssd, senha_exibida, 40, 30);
         char info_digito[10];
-        sprintf(info_digito, "DIGITO: %d", digito_atual);
+        sprintf(info_digito, "Digito: %d", digito_atual);
         ssd1306_draw_string(ssd, info_digito, 40, 50);
     }
     ssd1306_send_data(ssd);
@@ -48,11 +48,11 @@ void desenhar_tela_senha(ssd1306_t *ssd, char *entrada, int indice, int digito_a
 void verificar_senha(ssd1306_t *ssd, char *entrada) {
     ssd1306_fill(ssd, false);
     if (strcmp(entrada, SENHA) == 0) {
-        ssd1306_draw_string(ssd, "CORRETO!", 20, 30);
+        ssd1306_draw_string(ssd, "Senha Correta!", 15, 30);
         gpio_put(LED_VERDE, 1);
         acesso_liberado = true;
     } else {
-        ssd1306_draw_string(ssd, "INCORRETO!", 15, 30);
+        ssd1306_draw_string(ssd, "Senha Incorreta!", 15, 30);
     }
     ssd1306_send_data(ssd);
     sleep_ms(2000);
