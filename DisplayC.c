@@ -79,6 +79,9 @@ void verificar_senha(ssd1306_t *ssd, char *entrada) {
             sleep_ms(250);
         }
         
+        // Retorna o LED vermelho para estado ligado após as piscadas
+        gpio_put(LED_VERMELHO, 1);
+        
         tentativas++;
         if (tentativas >= 3) {
             sistema_bloqueado = true;
@@ -86,7 +89,7 @@ void verificar_senha(ssd1306_t *ssd, char *entrada) {
         }
     }
     ssd1306_send_data(ssd);
-    sleep_ms(500); // Reduzido para não acumular com o tempo das piscadas
+    sleep_ms(500);
 }
 
 // Adicione esta nova função
