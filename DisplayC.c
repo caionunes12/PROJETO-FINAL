@@ -66,18 +66,27 @@ void verificar_senha(ssd1306_t *ssd, char *entrada) {
         ssd1306_draw_string(ssd, "Senha Correta!", 5, 30);
         gpio_put(LED_VERDE, 1);
         acesso_liberado = true;
-        tocar_buzzer_acesso();  // Toca o buzzer de acesso permitido
+        tocar_buzzer_acesso();
     } else {
         ssd1306_draw_string(ssd, "Senha Invalida!", 5, 30);
-        tentativas++;
+        ssd1306_send_data(ssd);
         
+        // Pisca o LED vermelho por 2 segundos (4 piscadas)
+        for(int i = 0; i < 4; i++) {
+            gpio_put(LED_VERMELHO, 1);
+            sleep_ms(250);
+            gpio_put(LED_VERMELHO, 0);
+            sleep_ms(250);
+        }
+        
+        tentativas++;
         if (tentativas >= 3) {
             sistema_bloqueado = true;
             tempo_bloqueio = time_us_32() / 1000000 + 60;
         }
     }
     ssd1306_send_data(ssd);
-    sleep_ms(2000);
+    sleep_ms(500); // Reduzido para não acumular com o tempo das piscadas
 }
 
 // Adicione esta nova função
@@ -215,3 +224,4 @@ int main() {
         sleep_ms(100);
     }
 }
+
